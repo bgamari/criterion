@@ -38,9 +38,6 @@ module Criterion.Measurement
     , measured
     , applyGCStatistics
     , threshold
-      -- * Deprecated
-    , getGCStats
-    , applyGCStats
     ) where
 
 import Criterion.Types (Benchmarkable(..), Measured(..))
@@ -52,7 +49,6 @@ import Data.Int (Int64)
 import Data.List (unfoldr)
 import Data.Word (Word64)
 import GHC.Generics (Generic)
-import GHC.Stats (GCStats(..))
 #if MIN_VERSION_base(4,10,0)
 import GHC.Stats (RTSStats(..), GCDetails(..))
 #endif
@@ -111,18 +107,6 @@ data GCStatistics = GCStatistics
     -- | Total wall clock time elapsed since start
     , gcStatsWallSeconds :: !Double
     } deriving (Eq, Read, Show, Typeable, Data, Generic)
-
--- | Try to get GC statistics, bearing in mind that the GHC runtime
--- will throw an exception if statistics collection was not enabled
--- using \"@+RTS -T@\".
-{-# DEPRECATED getGCStats
-      ["GCStats has been deprecated in GHC 8.2. As a consequence,",
-       "getGCStats has also been deprecated in favor of getGCStatistics.",
-       "getGCStats will be removed in the next major criterion release."] #-}
-getGCStats :: IO (Maybe GCStats)
-getGCStats =
-  (Just `fmap` Stats.getGCStats) `Exc.catch` \(_::Exc.SomeException) ->
-  return Nothing
 
 -- | Try to get GC statistics, bearing in mind that the GHC runtime
 -- will throw an exception if statistics collection was not enabled
@@ -328,30 +312,6 @@ measured = Measured {
     , measGcWallSeconds      = bad
     , measGcCpuSeconds       = bad
     } where bad = -1/0
-
--- | Apply the difference between two sets of GC statistics to a
--- measurement.
-{-# DEPRECATED applyGCStats
-      ["GCStats has been deprecated in GHC 8.2. As a consequence,",
-       "applyGCStats has also been deprecated in favor of applyGCStatistics.",
-       "applyGCStats will be removed in the next major criterion release."] #-}
-applyGCStats :: Maybe GCStats
-             -- ^ Statistics gathered at the __end__ of a run.
-             -> Maybe GCStats
-             -- ^ Statistics gathered at the __beginning__ of a run.
-             -> Measured
-             -- ^ Value to \"modify\".
-             -> Measured
-applyGCStats (Just end) (Just start) m = m {
-    measAllocated          = diff bytesAllocated
-  , measNumGcs             = diff numGcs
-  , measBytesCopied        = diff bytesCopied
-  , measMutatorWallSeconds = diff mutatorWallSeconds
-  , measMutatorCpuSeconds  = diff mutatorCpuSeconds
-  , measGcWallSeconds      = diff gcWallSeconds
-  , measGcCpuSeconds       = diff gcCpuSeconds
-  } where diff f = f end - f start
-applyGCStats _ _ m = m
 
 -- | Apply the difference between two sets of GC statistics to a
 -- measurement.
